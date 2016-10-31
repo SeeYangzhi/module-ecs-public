@@ -9,7 +9,10 @@ This Terraform Module creates an [EC2 Container Service
 Service](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html) that you can use to run one or
 more related, long-running Docker containers, such as a web service. An ECS service can automatically deploy multiple
 instances of your Docker containers across an ECS cluster (see the [ecs-cluster module](../ecs-cluster)), restart any
-failed Docker containers, and route traffic across your containers using an optional Elastic Load Balancer (ELB).
+failed Docker containers, and route traffic across your containers using an optional Elastic Load Balancer (ELB). This
+module also supports [canary deployment](http://martinfowler.com/bliki/CanaryRelease.html), where you can deploy a
+single instance of a new Docker container version, test it, and if everything works well, deploy that version across
+the rest of the cluster.
 
 ## How do you use this module?
 
@@ -54,6 +57,60 @@ out automatically across your cluster according to two input variables:
   the process again with the remaining 2 tasks. This allows you to roll out new versions without having to keep spare
   EC2 instances, but it also means the availability of your service is somewhat reduced during rollouts.
 
+## How do I do a canary deployment?
+
+A [canary deployment](http://martinfowler.com/bliki/CanaryRelease.html) is a way to test new versions of your Docker
+containers in a way that limits the damage any bugs could do. The idea is to deploy the new version onto just a single
+server (meanwhile, the old versions are running elsewhere) and to test that new version and compare it to the old
+versions. If everything is working well, you roll the new version out everywhere. If there are any problems, they only
+affect a small percentage of users, and you can quickly fix them by rolling the new version back.
+
+To do a canary deployment with this module, you need to specify two parameters:
+
+* `canary_task_arn`: The ARN of the ECS Task to deploy as a canary.
+* `desired_number_of_canary_tasks_to_run`: The number of ECS Tasks to run for the canary. You should typically set
+  this to 1.
+
+Here's an example that has 10 versions of the original ECS Task running and adds 1 Task to try out a canary:
+
+```hcl
+module "ecs_service" {
+  task_arn = "${aws_ecs_task_definition.original_task.arn}"
+  desired_number_of_tasks = 10
+
+  canary_task_arn = "${aws_ecs_task_definition.canary_task.arn}"
+  desired_number_of_canary_tasks_to_run = 1
+
+  # (... all other params omitted ...)
+}
+```
+
+If this canary has any issues, set `desired_number_of_canary_tasks_to_run` to 0. If the canary works well, to
+deploy the new version across the whole cluster, update `aws_ecs_task_definition.original_task` with the new version of
+the Docker container and set `desired_number_of_canary_tasks_to_run` back to 0.
+
+## How does canary deployment work?
+
+The way we do canary deployments with this module is to create a second ECS Service just for the canary that runs
+`desired_number_of_canary_tasks_to_run` instances of your canary ECS Task. This ECS Service registers with the same
+ELB (if you're using one), so some percentage of user requests will randomly hit the canary, and the rest will go to
+the original ECS Tasks. For example, if you had 9 ECS Tasks and you deployed 1 canary ECS Task, then each request would
+have a 90% chance of hitting the original version of your Docker container and a 10% chance of hitting the canary
+version.
+
+Therefore, there are two caveats with using canary deployments:
+
+1. Do not do canary deployments with user-visible changes. For example, if your Docker container is a frontend service
+   and the new Docker image version changes the UI, then a user may see a different version of the UI every time they
+   refresh the page, which could be a jarring experience. You can still use canary deployments with frontend Docker
+   containers so long as you wrap UI changes in feature toggles and don't enable those toggles until the new version is
+   rolled out across the entire cluster (i.e. this is known as a [dark
+   launch](http://tech.co/the-dark-launch-how-googlefacebook-release-new-features-2016-04)).
+1. Ensure the new version of your Docker container is backwards compatible with the old version. For example, if the
+   Docker container runs schema migrations when it boots, make sure the new schema works correctly with the old version
+   of the Docker container, since both will be running simultaneously. Backwards compatibility is always a good idea
+   with deployments, but it becomes a hard requirement with canary deployments.
+
 ## How do you add additional IAM policies?
 
 If you associate this ECS Service with an ELB (`is_associated_with_elb` is set to true), then we create an IAM Role and
@@ -64,13 +121,13 @@ set the IAM role id to the Terraform output of this module called `service_iam_r
 you can allow the ECS Service in this cluster to access an S3 bucket:
 
 ```hcl
-module "ecs_service_with_elb" {
+module "ecs_service" {
   # (arguments omitted)
 }
 
 resource "aws_iam_role_policy" "access_s3_bucket" {
     name = "access_s3_bucket"
-    role = "${module.ecs_service_with_elb.service_iam_role_id}"
+    role = "${module.ecs_service.service_iam_role_arn}"
     policy = <<EOF
 {
   "Version": "2012-10-17",
