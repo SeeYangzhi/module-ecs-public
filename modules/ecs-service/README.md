@@ -143,3 +143,27 @@ resource "aws_iam_role_policy" "access_s3_bucket" {
 EOF
 }
 ```
+
+## How do you scale an ECS Service?
+
+To scale an ECS service in response to higher load, you have two options:
+
+1. **Scale the number of ECS Tasks**: To do this, you first create an
+   [aws_appautoscaling_target](https://www.terraform.io/docs/providers/aws/r/appautoscaling_target.html), setting its
+   `role_arn` parameter to the `service_autoscaling_iam_role_arn` of the `ecs-service` module. Next, you create one or
+   more [aws_appautoscaling_policy](https://www.terraform.io/docs/providers/aws/r/appautoscaling_policy.html)
+   resources that define how to scale the number of ECS Tasks up or down. Finally, you create one or more
+   [aws_cloudwatch_metric_alarm](https://www.terraform.io/docs/providers/aws/r/cloudwatch_metric_alarm.html) resources
+   that trigger your `aws_appautoscaling_policy` resources when certain metrics cross specific thresholds (e.g. when
+   CPU usage is over 90%).
+1. **Scale the number of ECS Instances and Tasks**: If your ECS Cluster doesn't have enough spare capacity, then not
+   only will you have to scale the number of ECS Instances as described above, but you'll also have to increase the
+   size of the cluster by scaling the number of ECS Instances. To do that, you create one or more
+   [aws_autoscaling_policy](https://www.terraform.io/docs/providers/aws/r/autoscaling_policy.html) resources with the
+   `autoscaling_group_name` parameter set to the `ecs_cluster_asg_name` output of the `ecs-cluster` module. Next, you
+   create one or more
+   [aws_cloudwatch_metric_alarm](https://www.terraform.io/docs/providers/aws/r/cloudwatch_metric_alarm.html) resources
+   that trigger your `aws_autoscaling_policy` resources when certain metrics cross specific thresholds (e.g. when
+   CPU usage is over 90%).
+
+See the [docker-service-with-autoscaling example](/examples/docker-service-with-autoscaling) for sample code.

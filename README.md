@@ -7,13 +7,15 @@ If you're not a customer, contact us at <info@gruntwork.io> or <http://www.grunt
 
 This repo contains modules for running Docker containers on top of [Amazon EC2 Container Service
 (ECS)](https://aws.amazon.com/ecs/). The modules are:
-
+    
 * [ecs-cluster](/modules/ecs-cluster): Deploy a cluster of EC2 instances that ECS can use for running Docker
   containers.
 * [ecs-service](/modules/ecs-service): Deploy an ECS Service, which is a way to run one or more related, long-running
   Docker containers, such as a web service. An ECS service can automatically deploy multiple instances of your Docker
   containers across an ECS cluster, restart any failed Docker containers, and route traffic across your containers
   using an optional Elastic Load Balancer (ELB).
+* [ecs-service-with-alb](/modules/ecs-service-with-alb): Deploy an ECS Service fronted by an Application Load Balancer
+  (ALB). This is especially useful for a traditional HTTP-based service, or one that uses WebSockets.
 * [ecs-scripts](/modules/ecs-scripts): Helper scripts you can run on the EC2 instances in your ECS cluster to
   initialize and configure them.
 
