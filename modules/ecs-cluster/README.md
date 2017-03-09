@@ -90,28 +90,49 @@ currently no way in ECS to manage IAM policies on a per-Docker-container basis.
 
 ## How do you make changes to the EC2 Instances in the cluster?
 
-While updating the Docker containers running in your cluster is easy and automatically rolled out by the ECS scheduler
-(see the [service module docs](../service)), updating the actual instances in the ECS cluster is trickier. Currently,
-**the instances in this ECS cluster will NOT update automatically** when you make a change to the launch configuration
-of the ECS Instances. For example, if you change the instance type or change the AMI and run `terraform apply`, the
-command will complete successfully, but nothing will automatically change with the instances in the cluster until you
-manually deploy new ones.
+To deploy an update to an ECS Service, see the [ecs-service module](/modules/ecs-service). To deploy an update to the
+EC2 Instances in your ECS cluster, such as a new AMI, read on.
 
-That's because each instance may be running one or more Docker containers and you need to find a way to convince the
-ECS scheduler to move those containers to the new instances. There are currently two options for doing this:
+Terraform and AWS do not provide a way to automatically roll out a change to the Instances in an ECS Cluster. Due to
+Terraform limitations (see [here for a discussion](https://github.com/gruntwork-io/module-ecs-public/pull/29)), there is 
+currently no way to implement this purely in Terraform code. Therefore, we've created a script called 
+`roll-out-ecs-cluster-update.py` that can do a zero-downtime roll out for you.
 
-1. Temporarily double the size of your ECS cluster and the number of desired tasks for all of your ECS services. The
-   ASG will roll out the new instances and the ECS scheduler will deploy the new tasks on top of those new instances.
-   Once everything is up and running, you can reduce the size of the ECS cluster and the number of desired tasks back
-   to normal. By default, the ASG should automatically remove the old instances, leaving you with a cluster with just
-   the new ones.
-1. Terminate one old instance at a time. This cluster is an Auto Scaling Group (ASG), so it will automatically detect
-   that an old instance has been terminated and deploy a new one. Similarly, the ECS cluster will automatically detect
-   that the Docker containers running on that instance were terminated and will automatically deploy them onto any
-   available instances in the cluster (including the new one you deployed). Assuming you have at least two copies of
-   every Docker container running in your cluster, terminating one instance at a time and waiting for the ASG and ECS
-   cluster to automatically relaunch everything will allow you to deploy without downtime.
+### How to use the roll-out-ecs-cluster-update.py script
 
-When Terraform adds support for [ECS auto scaling](https://github.com/hashicorp/terraform/issues/6763), we may be
-able to automate option #1 by adding auto scaling policies (one doubling the size, one halving it) for the ASG and each
-ECS service and trigger those policies to do a deployment.
+First, make sure you have the latest version of the [AWS Python SDK (boto3)](https://github.com/boto/boto3) installed
+(e.g. `pip install boto3`).
+
+To deploy a change such as rolling out a new AMI to all ECS Instances:
+
+1. Make sure the `cluster_max_size` is at least twice the size of `cluster_min_size`. The extra capacity will be used 
+   to deploy the updated instances.
+1. Update the Terraform code with your changes (e.g. update the `cluster_instance_ami` variable to a new AMI).
+1. Run `terraform apply`.
+1. Run the script: 
+
+    ```
+    python roll-out-ecs-cluster-update.py --asg-name ASG_NAME --cluster-name CLUSTER_NAME --aws-region AWS_REGION
+    ```
+    
+    If you have your output variables configured as shown in [outputs.tf](/examples/docker-service-with-elb/outputs.tf)
+    of the [docker-service-with-elb example](/examples/docker-service-with-elb), you can use the `terraform output`
+    command to fill in most of the arguments automatically:
+    
+    ```
+    python roll-out-ecs-cluster-update.py \
+      --asg-name $(terraform output -no-color asg_name) \
+      --cluster-name $(terraform output -no-color ecs_cluster_name) \
+      --aws-region $(terraform output -no-color aws_region)    
+    ```
+
+### How roll-out-ecs-cluster-update.py works
+
+The `roll-out-ecs-cluster-update.py` script does the following:
+
+1. Double the desired capacity of the Auto Scaling Group that powers the ECS Cluster. This causes ECC Instances to 
+   deploy with the new launch configuration.
+1. Put all the old ECS Instances in DRAINING state so all ECS Tasks are migrated off of them to the new Instances.
+1. Wait for all ECS Tasks to migrate off the old Instances.
+1. Set the desired capacity of the Auto Scaling Group back to its original value.
+
