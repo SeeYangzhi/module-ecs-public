@@ -121,9 +121,9 @@ To deploy a change such as rolling out a new AMI to all ECS Instances:
     
     ```
     python roll-out-ecs-cluster-update.py \
-      --asg-name $(terraform output -no-color asg_name) \
-      --cluster-name $(terraform output -no-color ecs_cluster_name) \
-      --aws-region $(terraform output -no-color aws_region)    
+      --asg-name $(terragrunt output -no-color asg_name) \
+      --cluster-name $(terragrunt output -no-color ecs_cluster_name) \
+      --aws-region $(terragrunt output -no-color aws_region)    
     ```
 
 ### How roll-out-ecs-cluster-update.py works

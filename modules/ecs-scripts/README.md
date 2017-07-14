@@ -30,10 +30,17 @@ The `configure-ecs-instance` script has the following prerequisites:
 1. The EC2 instance must be running an [Amazon ECS-optimized AMI](https://aws.amazon.com/marketplace/pp/B00U6QTYI2/).
 1. The EC2 instance must have the AWS CLI installed.
 
-To run the script, you need to pass it the ECS cluster name and the type of Docker repo auth you are using
-(one of `ecr`, `docker-hub`, `docker-other`, or `none`). If you are using docker-hub or docker-other, you need to pass
-the auth details using the environment variables `DOCKER_REPO_URL`, `DOCKER_REPO_AUTH`, and `DOCKER_REPO_EMAIL`. See
-[Docker Authentication
+To run the script, you need to pass it the name of the ECS cluster you are using. You also need to specify the Docker 
+auth type and corresponding auth details:
+
+* `docker-hub`: You must set the environment variables `DOCKER_REPO_AUTH` (the auth token) and `DOCKER_REPO_EMAIL` 
+  (the email address used to login).
+* `docker-gitlab`: You must set the environment variables `DOCKER_REPO_AUTH` (the auth token).
+* `docker-other`: You must set the environment variables `DOCKER_REPO_URL` (the URL of your Docker registry), 
+  `DOCKER_REPO_AUTH` (the auth token), and, optionally, `DOCKER_REPO_EMAIL` (the email address used to login).
+* `ecr`: No other params are necessary, as the script will use an IAM Role to login. 
+
+See [Docker Authentication
 Formats](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/private-auth.html#docker-auth-formats) to learn
 about how ECS handles Docker registry authentication.
 
