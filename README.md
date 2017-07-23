@@ -18,6 +18,8 @@ This repo contains modules for running Docker containers on top of [Amazon EC2 C
   (ALB). This is especially useful for a traditional HTTP-based service, or one that uses WebSockets.
 * [ecs-scripts](/modules/ecs-scripts): Helper scripts you can run on the EC2 instances in your ECS cluster to
   initialize and configure them.
+* [ecs-deploy](/modules/ecs-deploy): Scripts that help with ECS deployment, such as running a single ECS Task, waiting
+  for it to exit, and returning its exit code.
 
 ## What is a module?
 
