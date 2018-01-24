@@ -100,7 +100,18 @@ Amazon has its own vocabulary for ECS that can be confusing. Here's a helpful gu
 
 ## Developing a module
 
-#### Versioning
+### Formatting and pre-commit hooks
+
+You must run `terraform fmt` on the code before committing. You can configure your computer to do this automatically 
+using pre-commit hooks managed using [pre-commit](http://pre-commit.com/):
+
+1. [Install pre-commit](http://pre-commit.com/#install). E.g.: `brew install pre-commit`.
+1. Install the hooks: `pre-commit install`.
+
+That's it! Now just write your code, and every time you commit, `terraform fmt` will be run on the files you're 
+committing.
+
+### Versioning
 
 We are following the principles of [Semantic Versioning](http://semver.org/). During initial development, the major
 version is to 0 (e.g., `0.x.y`), which indicates the code does not yet have a stable API. Once we hit `1.0.0`, we will
@@ -112,7 +123,7 @@ follow these rules:
 
 The version is defined using Git tags.  Use GitHub to create a release, which will have the effect of adding a git tag.
 
-#### Tests
+### Tests
 
 See the [test](/test) folder for details.
 

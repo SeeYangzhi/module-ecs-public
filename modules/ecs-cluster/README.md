@@ -58,7 +58,7 @@ currently no way in ECS to manage security group rules on a per-Docker-container
 To add additional IAM policies to the EC2 Instances in the ECS cluster, you can use the
 [aws_iam_role_policy](https://www.terraform.io/docs/providers/aws/r/iam_role_policy.html) or
 [aws_iam_policy_attachment](https://www.terraform.io/docs/providers/aws/r/iam_policy_attachment.html) resources, and
-set the IAM role id to the Terraform output of this module called `ecs_instance_iam_role_id` . For example, here is how
+set the IAM role id to the Terraform output of this module called `ecs_instance_iam_role_name` . For example, here is how
 you can allow the EC2 Instances in this cluster to access an S3 bucket:
 
 ```hcl
@@ -68,7 +68,7 @@ module "ecs_cluster" {
 
 resource "aws_iam_role_policy" "access_s3_bucket" {
     name = "access_s3_bucket"
-    role = "${module.ecs_cluster.ecs_instance_iam_role_id}"
+    role = "${module.ecs_cluster.ecs_instance_iam_role_name}"
     policy = <<EOF
 {
   "Version": "2012-10-17",
