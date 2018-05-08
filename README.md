@@ -14,6 +14,10 @@ This repo contains modules for running Docker containers on top of [Amazon EC2 C
   Docker containers, such as a web service. An ECS service can automatically deploy multiple instances of your Docker
   containers across an ECS cluster, restart any failed Docker containers, and route traffic across your containers
   using an optional Elastic Load Balancer (ELB).
+* [ecs-fargate](/modules/ecs-fargate): Deploy a Fargate Service, which is a way to run one or more related, long-running
+  Docker containers, such as a web service. A Fargate service can automatically deploy multiple instances of your Docker
+  containers without you having to concern yourself with deploying, configuring or scaling the underlying instances. Just
+  ask AWS to deploy your containers and it handles the rest.
 * [ecs-service-with-alb](/modules/ecs-service-with-alb): Deploy an ECS Service fronted by an Application Load Balancer
   (ALB). This is especially useful for a traditional HTTP-based service, or one that uses WebSockets.
 * [ecs-scripts](/modules/ecs-scripts): Helper scripts you can run on the EC2 instances in your ECS cluster to
@@ -80,6 +84,35 @@ fault-tolerant, scalable, and highly available way. Its primary advantage over a
 [Mesos](http://mesos.apache.org/) and [Kubernetes](http://kubernetes.io/) is that it's much easier to set up,
 understand, and integrate with other AWS services. Its primary downside is that it offers less powerful options for
 "scheduling" containers across different hosts.
+
+## What is Fargate?
+
+Fargate is a technology for Amazon ECS that allows you to run containers without having to manage servers or clusters. With AWS Fargate, you no longer have to provision, configure, and scale clusters of virtual machines to run containers. This removes the need to choose server types, decide when to scale your clusters, or optimize cluster packing.
+
+### ECS vs Fargate
+
+#### ECS Functionality
+
+- You have full control over the servers and how they are configured.
+- You deploy, maintain, patch, monitor, and scale the servers yourself.
+- You can control costs with spot instances and reserved instances.
+- You can use Docker images in private registeries.
+- You have to manually monitor the EC2 instances in your cluster.
+- Supports Classic Load Balancers, Application Load Balancers and Network Load Balancers
+
+#### Fargate Functionality
+
+- You hand AWS a container and it figures out how to deploy it. You don't have to worry about the servers at all, just your app/containers.
+- Fargate could be slightly more expensive than ECS because of the lack of fine grained control over the instance sizes. Detailed pricing breakdown [here](https://aws.amazon.com/fargate/pricing/)
+- Fargate starts up containers slightly slower because of the overhead of newly creating the underlying infrastructure.
+- Fargate doesn't support all Task Definition parameters, more info [here](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html#fargate-task-defs)
+- Fargate only supports images in Amazon ECR or public repositories in Docker Hub.
+- Fargate automatically sets up Cloudwatch metric and logs for your service.
+- Fargate is limited to Application Load Balancers and Network Load Balancers
+- Fargate is currently not supported in all regions. See the full support matrix [here](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)
+
+
+Which service you decide to go with is entirely dependent on your infrastructure needs. If you want to focus entirely on the application you're deploying and not have to worry about servers, clusters and the underlying infrastructure as a whole then Fargate is for you. However, if your application does require you to have fine grained control over the details of the underlying EC2 instances, auto scaling rules etc than ECS is more appropriate.
 
 ### Helpful Vocabulary
 
