@@ -25,7 +25,7 @@ This folder contains scripts that help with ECS deployment:
 You can install the helpers using the [Gruntwork Installer](https://github.com/gruntwork-io/gruntwork-installer):
 
 ```bash
-gruntwork-install --module-name "ecs-deploy" --repo "https://github.com/gruntwork-io/module-ecs" --tag "v0.5.1"
+gruntwork-install --module-name "ecs-deploy" --repo "https://github.com/gruntwork-io/module-ecs" --tag "v0.7.0"
 ```
 
 

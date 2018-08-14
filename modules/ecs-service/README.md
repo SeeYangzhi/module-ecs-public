@@ -111,13 +111,14 @@ Therefore, there are two caveats with using canary deployments:
    of the Docker container, since both will be running simultaneously. Backwards compatibility is always a good idea
    with deployments, but it becomes a hard requirement with canary deployments.
 
-## How do you add additional IAM policies?
+## How do you add additional IAM policies to the ECS Service?
 
-If you associate this ECS Service with an ELB (`is_associated_with_elb` is set to true), then we create an IAM Role and
-associated IAM Policies that allow the ECS Service to talk to the ELB. To add additional IAM policies to this IAM Role,
-you can use the [aws_iam_role_policy](https://www.terraform.io/docs/providers/aws/r/iam_role_policy.html) or
+This module creates an [IAM Role for the ECS Tasks](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html)
+run by the ECS Service. Any custom IAM Policies needed by this ECS Service should be attached to that IAM Role. 
+
+To do this in Terraform, you can use the [aws_iam_role_policy](https://www.terraform.io/docs/providers/aws/r/iam_role_policy.html) or
 [aws_iam_policy_attachment](https://www.terraform.io/docs/providers/aws/r/iam_policy_attachment.html) resources, and
-set the IAM role id to the Terraform output of this module called `service_iam_role_id` . For example, here is how
+set the `role` property to the Terraform output of this module called `ecs_task_iam_role_name`. For example, here is how
 you can allow the ECS Service in this cluster to access an S3 bucket:
 
 ```hcl
@@ -127,20 +128,16 @@ module "ecs_service" {
 
 resource "aws_iam_role_policy" "access_s3_bucket" {
     name = "access_s3_bucket"
-    role = "${module.ecs_service.service_iam_role_arn}"
-    policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect":"Allow",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::examplebucket/*"
-    }
-  ]
+    role = "${module.ecs_service.ecs_task_iam_role_name}"
+    policy = "${aws_iam_policy_document.access_s3_bucket.json}"
 }
-EOF
+
+data "aws_iam_policy_document" "access_s3_bucket" {
+  statement {
+    effect = "Allow"
+    actions = ["s3:GetObject"]
+    resources = ["arn:aws:s3:::examplebucket/*"]
+  }
 }
 ```
 
@@ -157,7 +154,7 @@ To scale an ECS service in response to higher load, you have two options:
    that trigger your `aws_appautoscaling_policy` resources when certain metrics cross specific thresholds (e.g. when
    CPU usage is over 90%).
 1. **Scale the number of ECS Instances and Tasks**: If your ECS Cluster doesn't have enough spare capacity, then not
-   only will you have to scale the number of ECS Instances as described above, but you'll also have to increase the
+   only will you have to scale the number of ECS Tasks as described above, but you'll also have to increase the
    size of the cluster by scaling the number of ECS Instances. To do that, you create one or more
    [aws_autoscaling_policy](https://www.terraform.io/docs/providers/aws/r/autoscaling_policy.html) resources with the
    `autoscaling_group_name` parameter set to the `ecs_cluster_asg_name` output of the `ecs-cluster` module. Next, you

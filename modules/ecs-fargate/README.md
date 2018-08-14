@@ -20,6 +20,7 @@ Under the hood, Fargate is basically an ECS Service with the `FARGATE` launch ty
 1. Deploy the requested number of Tasks on Fargate based on the `desired_number_of_tasks` input variable.
 1. Restart tasks if they fail.
 1. Route traffic across the tasks with an optional Load Balancer (ALB or NLB). To use a load balancer, set `is_associated_with_lb` to `true` and pass in the details using the `load_balancer_arn`, `container_name` and `container_port` input variables.
+1. Ensure that `httpPort` in the container definitions json file is _explicitly_ set to the same value as `containerPort` so that `terraform apply` doesn't try to apply a change when there's none.
 1. Pull public images from the docker registry, you must set `assign_public_ip` to `true`
 
 
